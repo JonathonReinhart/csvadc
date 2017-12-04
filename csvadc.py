@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 from __future__ import print_function
+from collections import defaultdict
 import argparse
 import csv
+import re
+import sys
 
 BITORDER_LSB_FIRST = 'lsb'
 BITORDER_MSB_FIRST = 'msb'
+
+def printerr(*args, **kwargs):
+    kwargs['file'] = sys.stderr
+    return print(*args, **kwargs)
 
 def map_value(x, low, high):
     if x >= high: return True
@@ -26,6 +33,34 @@ def bits_to_int(bits, order):
         assert isinstance(b, bool)
         r |= (b << n)
     return r
+
+
+# E.g. "v(data0)"
+busnode_pat = re.compile('v\((\w+)(\d+)\)')
+
+def infer_busses(header):
+    # Mapping of bus name => (mapping of column index => bit number)
+    busses = defaultdict(dict)
+
+    for colnum,nodename in enumerate(header):
+        m = busnode_pat.match(nodename)
+        bus_name = m.group(1)
+        bus_bit = int(m.group(2))
+
+        bitmap = busses[bus_name]
+        bitmap[colnum] = bus_bit
+
+    # Display
+    printerr("Busses:")
+    for busname, bitmap in busses.items():
+        printerr("  {}:".format(busname))
+        for colnum, bit in bitmap.items():
+            printerr("     col {} => bit {}".format(colnum, bit))
+
+    return busses
+
+
+
 
 
 def parse_args():
@@ -56,7 +91,7 @@ def main():
     r = csv.reader(args.input)
 
     header = next(r)
-    #print("Header:", header)
+    busses = infer_busses(header)
 
     for record in r:
         record = [float(x) for x in record]
