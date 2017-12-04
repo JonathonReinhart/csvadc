@@ -35,25 +35,45 @@ def bits_to_int(bits, order):
     return r
 
 
-
+DEFAULT_LOW_THRESHOLD  = 0.2
+DEFAULT_HIGH_THRESHOLD = 1.5
 
 class BusHandler:
     # E.g. "v(data0)"
     busnode_pat = re.compile('v\((\w+)(\d+)\)')
 
-    def __init__(self, low, high):
+    def __init__(self, low=None, high=None):
         # Mapping of bus name => (mapping of column index => bit number)
         self.busses = defaultdict(dict)
 
-        self.low = low
-        self.high = high
+        self.set_thresholds(low, high)
 
-    def infer(self, header):
+    def set_thresholds(self, low=None, high=None):
+        self.low  = low  if (low  is not None) else DEFAULT_LOW_THRESHOLD
+        self.high = high if (high is not None) else DEFAULT_HIGH_THRESHOLD
+
+    @classmethod
+    def infer(cls, header):
+        bh = cls()
         for colnum,nodename in enumerate(header):
-            m = self.busnode_pat.match(nodename)
+            m = cls.busnode_pat.match(nodename)
             bus_name = m.group(1)
             bus_bit = int(m.group(2))
-            self.busses[bus_name][colnum] = bus_bit
+            bh.busses[bus_name][colnum] = bus_bit
+        return bh
+
+    @classmethod
+    def default_lsb_first(cls, length):
+        bh = cls()
+        bh.busses['(default)'] = {i:i for i in range(length)}
+        return bh
+
+    @classmethod
+    def default_msb_first(cls, length):
+        bh = cls()
+        bh.busses['(default)'] = {i:length-1-i for i in range(length)}
+        return bh
+
 
     def print(self, file=None):
         print("Busses:", file=file)
@@ -80,6 +100,20 @@ class BusHandler:
 
         return result
 
+def peek(f, n):
+    pos = f.tell()
+    try:
+        return f.read(n)
+    finally:
+        f.seek(pos)
+
+def csv_peek(f):
+    '''Return the first row of a CSV file'''
+    pos = f.tell()
+    try:
+        return next(csv.reader(f))
+    finally:
+        f.seek(pos)
 
 
 def parse_args():
@@ -93,9 +127,9 @@ def parse_args():
     ap.add_argument('--high', type=float, default=1.5,
         help='Logic high threshold; values above this voltage considered logic "1"')
 
-    ap.add_argument('--order', default=BITORDER_LSB_FIRST,
+    ap.add_argument('--order', 
         choices=[BITORDER_LSB_FIRST, BITORDER_MSB_FIRST],
-        help='Bit order (first)')
+        help='Bit order (first) (default: lsb)')
 
     args = ap.parse_args()
 
@@ -106,12 +140,36 @@ def parse_args():
 
 def main():
     args = parse_args()
+    f = args.input
+    
+    # Sniff out the CSV format
+    sniffer = csv.Sniffer()
+    sample = peek(f, 1024)
+    dialect = sniffer.sniff(sample)
+    printerr("Dialect:", dialect)
+    has_header = sniffer.has_header(sample)
+    printerr("Has header:", has_header)
 
-    r = csv.reader(args.input)
 
-    header = next(r)
-    busses = BusHandler(low=args.low, high=args.high)
-    busses.infer(header)
+    r = csv.reader(f)
+    if has_header:
+        header = next(r)
+        busses = BusHandler.infer(header)
+
+        if args.order:
+            printerr("WARNING: --order ignored when busses inferred from CSV header")
+
+    else:
+        num_bits = len(csv_peek(f))
+
+        if args.order in (None, BITORDER_LSB_FIRST):
+            busses =  BusHandler.default_lsb_first(num_bits)
+        elif args.order == BITORDER_MSB_FIRST:
+            busses =  BusHandler.default_msb_first(num_bits)
+        else:
+            raise Exception("Invalid bitorder")
+
+    busses.set_thresholds(low=args.low, high=args.high)
     busses.print(file=sys.stderr)
 
 
