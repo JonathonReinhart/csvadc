@@ -35,31 +35,50 @@ def bits_to_int(bits, order):
     return r
 
 
-# E.g. "v(data0)"
-busnode_pat = re.compile('v\((\w+)(\d+)\)')
-
-def infer_busses(header):
-    # Mapping of bus name => (mapping of column index => bit number)
-    busses = defaultdict(dict)
-
-    for colnum,nodename in enumerate(header):
-        m = busnode_pat.match(nodename)
-        bus_name = m.group(1)
-        bus_bit = int(m.group(2))
-
-        bitmap = busses[bus_name]
-        bitmap[colnum] = bus_bit
-
-    # Display
-    printerr("Busses:")
-    for busname, bitmap in busses.items():
-        printerr("  {}:".format(busname))
-        for colnum, bit in bitmap.items():
-            printerr("     col {} => bit {}".format(colnum, bit))
-
-    return busses
 
 
+class BusHandler:
+    # E.g. "v(data0)"
+    busnode_pat = re.compile('v\((\w+)(\d+)\)')
+
+    def __init__(self, low, high):
+        # Mapping of bus name => (mapping of column index => bit number)
+        self.busses = defaultdict(dict)
+
+        self.low = low
+        self.high = high
+
+    def infer(self, header):
+        for colnum,nodename in enumerate(header):
+            m = self.busnode_pat.match(nodename)
+            bus_name = m.group(1)
+            bus_bit = int(m.group(2))
+            self.busses[bus_name][colnum] = bus_bit
+
+    def print(self, file=None):
+        print("Busses:", file=file)
+        for busname, bitmap in self.busses.items():
+            print("  {}:".format(busname), file=file)
+            for colnum, bit in bitmap.items():
+                print("     col {} => bit {}".format(colnum, bit), file=file)
+
+    def extract_vals(self, row):
+        result = {}
+        for busname, bitmap in self.busses.items():
+            result[busname] = 0
+
+            for colnum, bit in bitmap.items():
+                analog = row[colnum]
+                digital = map_value(analog, self.low, self.high)
+
+                if digital is None:
+                    result[busname] = None
+                    break
+
+                result[busname] |= digital << bit
+
+
+        return result
 
 
 
@@ -91,17 +110,18 @@ def main():
     r = csv.reader(args.input)
 
     header = next(r)
-    busses = infer_busses(header)
+    busses = BusHandler(low=args.low, high=args.high)
+    busses.infer(header)
+    busses.print(file=sys.stderr)
+
 
     for record in r:
         record = [float(x) for x in record]
         #print("  input", record)
 
-        result = [map_value(x, args.low, args.high) for x in record]
-
-        val = bits_to_int(result, args.order)
-        #print("  result {}  =>  {}".format(result, val))
-        print(val)
+        # Extract bus values
+        bus_vals = busses.extract_vals(record)
+        print(bus_vals)
 
 if __name__ == '__main__':
     main()
