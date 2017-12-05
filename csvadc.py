@@ -39,8 +39,8 @@ DEFAULT_LOW_THRESHOLD  = 0.2
 DEFAULT_HIGH_THRESHOLD = 1.5
 
 class BusHandler:
-    # E.g. "v(data0)"
-    busnode_pat = re.compile('v\((\w+)(\d+)\)')
+    # E.g. "v(data01)"
+    busnode_pat = re.compile('v\((\w+?)(\d+)\)')
 
     def __init__(self, low=None, high=None):
         # Mapping of bus name => (mapping of column index => bit number)
