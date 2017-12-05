@@ -57,6 +57,8 @@ class BusHandler:
         bh = cls()
         for colnum,nodename in enumerate(header):
             m = cls.busnode_pat.match(nodename)
+            if not m:
+                continue
             bus_name = m.group(1)
             bus_bit = int(m.group(2))
             bh.busses[bus_name][colnum] = bus_bit
