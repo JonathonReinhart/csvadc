@@ -100,10 +100,10 @@ class BusHandler:
 
         return result
 
-def peek(f, n):
+def peekline(f):
     pos = f.tell()
     try:
-        return f.read(n)
+        return f.readline()
     finally:
         f.seek(pos)
 
@@ -144,7 +144,7 @@ def main():
     
     # Sniff out the CSV format
     sniffer = csv.Sniffer()
-    sample = peek(f, 1024)
+    sample = peekline(f)
     dialect = sniffer.sniff(sample)
     printerr("Dialect:", dialect)
     has_header = sniffer.has_header(sample)
