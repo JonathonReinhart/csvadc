@@ -187,7 +187,7 @@ def main():
 
         # Extract bus values
         bus_vals = busses.extract_vals(record)
-        print(bus_vals)
+        print(' '.join('{bus}={val} (0b{val:b})'.format(bus=bus, val=val) for bus,val in bus_vals.items()))
 
 if __name__ == '__main__':
     main()
