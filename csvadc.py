@@ -12,6 +12,12 @@ BITORDER_MSB_FIRST = 'msb'
 def printerr(*args, **kwargs):
     kwargs['file'] = sys.stderr
     return print(*args, **kwargs)
+    
+DEBUG = False
+
+def printdbg(*args, **kwargs):
+    if DEBUG:
+        printerr(*args, **kwargs)
 
 def map_value(x, low, high):
     if x >= high: return True
@@ -119,6 +125,8 @@ def csv_peek(f):
 
 
 def parse_args():
+    global DEBUG
+    
     ap = argparse.ArgumentParser(
             formatter_class = argparse.ArgumentDefaultsHelpFormatter,
             )
@@ -134,8 +142,11 @@ def parse_args():
         help='Bit order (first) (default: lsb)')
     ap.add_argument('--skip', type=int, default=0,
         help='Number of lines to skip (after header, if present)')
+    ap.add_argument('--debug', action='store_true')
 
     args = ap.parse_args()
+    if args.debug:
+        DEBUG = True
 
     if args.low >= args.high:
         ap.error("--low ({}) cannot be >= --high ({})".format(args.low, args.high))
@@ -151,7 +162,7 @@ def main():
     sample = peekline(f)
     dialect = sniffer.sniff(sample)
     has_header = sniffer.has_header(sample)
-    printerr("Has header:", has_header)
+    printdbg("Has header:", has_header)
 
 
     r = csv.reader(f, dialect)
@@ -173,7 +184,8 @@ def main():
             raise Exception("Invalid bitorder")
 
     busses.set_thresholds(low=args.low, high=args.high)
-    busses.print(file=sys.stderr)
+    if DEBUG:
+        busses.print(file=sys.stderr)
 
     for _ in range(args.skip):
         next(r)
