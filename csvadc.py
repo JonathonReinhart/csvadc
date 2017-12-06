@@ -187,7 +187,9 @@ def main():
 
         # Extract bus values
         bus_vals = busses.extract_vals(record)
-        print(' '.join('{bus}={val} (0b{val:b})'.format(bus=bus, val=val) for bus,val in bus_vals.items()))
+        print(' '.join('{bus}={val} (0b{val:0{binwidth}b})'
+            .format(bus=bus, val=val, binwidth=max(busses.busses[bus].values())+1)
+            for bus,val in bus_vals.items()))
 
 if __name__ == '__main__':
     main()
