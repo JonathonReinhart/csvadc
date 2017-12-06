@@ -132,6 +132,8 @@ def parse_args():
     ap.add_argument('--order', 
         choices=[BITORDER_LSB_FIRST, BITORDER_MSB_FIRST],
         help='Bit order (first) (default: lsb)')
+    ap.add_argument('--skip', type=int, default=0,
+        help='Number of lines to skip (after header, if present)')
 
     args = ap.parse_args()
 
@@ -174,6 +176,8 @@ def main():
     busses.set_thresholds(low=args.low, high=args.high)
     busses.print(file=sys.stderr)
 
+    for _ in range(args.skip):
+        next(r)
 
     for record in r:
         record = [float(x) for x in record]
