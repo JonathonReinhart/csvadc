@@ -150,12 +150,11 @@ def main():
     sniffer = csv.Sniffer()
     sample = peekline(f)
     dialect = sniffer.sniff(sample)
-    printerr("Dialect:", dialect)
     has_header = sniffer.has_header(sample)
     printerr("Has header:", has_header)
 
 
-    r = csv.reader(f)
+    r = csv.reader(f, dialect)
     if has_header:
         header = next(r)
         busses = BusHandler.infer(header)
