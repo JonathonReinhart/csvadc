@@ -179,8 +179,11 @@ def main():
         next(r)
 
     for record in r:
-        record = [float(x) for x in record]
-        #print("  input", record)
+        # Convert to float and discard empty columns
+        record = [float(x) for x in record if len(x)]
+        
+        # Skip empty lines
+        if not record: continue
 
         # Extract bus values
         bus_vals = busses.extract_vals(record)
