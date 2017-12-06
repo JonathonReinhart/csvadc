@@ -142,6 +142,7 @@ def parse_args():
         help='Bit order (first) (default: lsb)')
     ap.add_argument('--skip', type=int, default=0,
         help='Number of lines to skip (after header, if present)')
+    ap.add_argument('--format', choices=('dec', 'hex', 'bin'), default='dec')
     ap.add_argument('--debug', action='store_true')
 
     args = ap.parse_args()
@@ -152,6 +153,15 @@ def parse_args():
         ap.error("--low ({}) cannot be >= --high ({})".format(args.low, args.high))
 
     return args
+    
+def format_val(val, fmt, width):
+    if fmt == 'dec':
+        return '{}'.format(val)
+    if fmt == 'hex':
+        hexwidth = ((width-1) // 4) + 1
+        return '0x{val:0{width}X}'.format(val=val, width=hexwidth)
+    if fmt == 'bin':
+        return '0b{val:0{width}b}'.format(val=val, width=width)
 
 def main():
     args = parse_args()
@@ -199,9 +209,10 @@ def main():
 
         # Extract bus values
         bus_vals = busses.extract_vals(record)
-        print(' '.join('{bus}={val} (0b{val:0{binwidth}b})'
-            .format(bus=bus, val=val, binwidth=max(busses.busses[bus].values())+1)
-            for bus,val in bus_vals.items()))
+        for bus_name, val in bus_vals.items():
+            bus_width = max(busses.busses[bus_name].values())+1
+            print('{}={} '.format(bus_name, format_val(val, args.format, bus_width)), end='')
+        print()
 
 if __name__ == '__main__':
     main()
