@@ -241,7 +241,19 @@ def main():
         for bus_name, val in bus_vals.items():
             bus_width = max(busses.busses[bus_name].values())+1
             print('{}={} '.format(bus_name, format_val(val, args.format, bus_width)), end='')
+
+
+        m = bus_vals['m']
+        n = bus_vals['n']
+        p = bus_vals['p']
+
+        if (m * n == p):
+            num_correct += 1
+            print('     ✔️ {}'.format(num_correct), end='')
+
         print()
+
+    print("Num correct: {}".format(num_correct))
 
 if __name__ == '__main__':
     main()
