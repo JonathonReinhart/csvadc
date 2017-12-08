@@ -115,11 +115,11 @@ def peekline(f):
     finally:
         f.seek(pos)
 
-def csv_peek(f):
+def csv_peek(f, dialect=None):
     '''Return the first row of a CSV file'''
     pos = f.tell()
     try:
-        return next(csv.reader(f))
+        return next(csv.reader(f, dialect))
     finally:
         f.seek(pos)
 
@@ -174,6 +174,7 @@ def main():
     has_header = sniffer.has_header(sample)
     printdbg("Has header:", has_header)
 
+    num_cols = sum(bool(x) for x in csv_peek(f, dialect))
 
     r = csv.reader(f, dialect)
     if has_header:
@@ -183,9 +184,17 @@ def main():
         if args.order:
             printerr("WARNING: --order ignored when busses inferred from CSV header")
 
-    else:
-        num_bits = len(csv_peek(f))
+        # Determine column indices of non-bus columns (e.g. "time")
+        bus_cols = set()
+        for bus_name, bus in busses.busses.items():
+            bus_cols.update(bus.keys())
+        non_bus_cols = set(range(num_cols))- bus_cols
 
+        # Create mapping of {name => column} for non-bus columns
+        non_bus_cols = {header[i]:i for i in non_bus_cols}
+
+    else:
+        num_bits = num_cols
         if args.order in (None, BITORDER_LSB_FIRST):
             busses =  BusHandler.default_lsb_first(num_bits)
         elif args.order == BITORDER_MSB_FIRST:
@@ -200,12 +209,17 @@ def main():
     for _ in range(args.skip):
         next(r)
 
+
     for record in r:
         # Convert to float and discard empty columns
         record = [float(x) for x in record if len(x)]
         
         # Skip empty lines
         if not record: continue
+
+        # Show non-bus values
+        for name, col in non_bus_cols.items():
+            print('{}={} '.format(name, record[col]), end='')
 
         # Extract bus values
         bus_vals = busses.extract_vals(record)
