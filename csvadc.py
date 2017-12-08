@@ -6,6 +6,9 @@ import csv
 import re
 import sys
 
+INITIAL_DELAY = 9e-9
+CLOCK_PERIOD = 10e-9
+
 BITORDER_LSB_FIRST = 'lsb'
 BITORDER_MSB_FIRST = 'msb'
 
@@ -210,12 +213,21 @@ def main():
         next(r)
 
 
+    next_sample_time = INITIAL_DELAY
+    num_correct = 0
+
     for record in r:
         # Convert to float and discard empty columns
         record = [float(x) for x in record if len(x)]
         
         # Skip empty lines
         if not record: continue
+
+        # Time to sample?
+        t = record[non_bus_cols['time']]
+        if t < next_sample_time:
+            continue
+        next_sample_time += CLOCK_PERIOD
 
         # Show non-bus values
         for name, col in non_bus_cols.items():
