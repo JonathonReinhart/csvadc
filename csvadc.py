@@ -209,6 +209,7 @@ def main():
     for _ in range(args.skip):
         next(r)
 
+    prev_bus_vals = None
 
     for record in r:
         # Convert to float and discard empty columns
@@ -217,12 +218,19 @@ def main():
         # Skip empty lines
         if not record: continue
 
+        bus_vals = busses.extract_vals(record)
+
+        # Hide rows where the bus values have not changed
+        if (bus_vals == prev_bus_vals):
+            continue
+        prev_bus_vals = bus_vals
+
+
         # Show non-bus values
         for name, col in non_bus_cols.items():
             print('{}={} '.format(name, record[col]), end='')
 
-        # Extract bus values
-        bus_vals = busses.extract_vals(record)
+        # Show bus values
         for bus_name, val in bus_vals.items():
             bus_width = max(busses.busses[bus_name].values())+1
             print('{}={} '.format(bus_name, format_val(val, args.format, bus_width)), end='')
