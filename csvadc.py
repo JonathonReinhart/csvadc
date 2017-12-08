@@ -226,6 +226,10 @@ def main():
         prev_bus_vals = bus_vals
 
 
+        # Hide rows where any bus values are indeterminate
+        if any(x == None for x in bus_vals.values()):
+            continue
+
         # Show non-bus values
         for name, col in non_bus_cols.items():
             print('{}={} '.format(name, record[col]), end='')
