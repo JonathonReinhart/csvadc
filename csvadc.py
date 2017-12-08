@@ -219,7 +219,10 @@ def main():
 
         # Show non-bus values
         for name, col in non_bus_cols.items():
-            print('{}={} '.format(name, record[col]), end='')
+            val = record[col]
+            if name == 'time':
+                val = '{:.02f} ns  '.format(val * 1000 * 1000 * 1000)
+            print('{}={} '.format(name, val), end='')
 
         # Extract bus values
         bus_vals = busses.extract_vals(record)
